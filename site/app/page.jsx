@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { Zap } from 'lucide-react'
 import { getProducts } from '../lib/mock-products'
 import CatalogClient from '../components/CatalogClient'
+import ThemeToggle from '../components/ThemeToggle'
 
 export const metadata = {
   title: 'WheyMais — Melhores wheys do Brasil por custo de proteína',
@@ -15,10 +16,11 @@ export default function Home() {
     <main className="wrap">
       <header>
         <div className="logo">
-          <Zap size={26} color="#c6f73e" fill="#c6f73e" />
+          <Zap size={26} color="var(--lime)" fill="var(--lime)" />
           <b>Whey<span className="x">Mais</span></b>
           <span className="badge-lab">custo por proteína</span>
         </div>
+        <ThemeToggle />
       </header>
 
       <h1 style={{ fontSize: 14, color: 'var(--mut)', fontWeight: 400, marginBottom: 18 }}>

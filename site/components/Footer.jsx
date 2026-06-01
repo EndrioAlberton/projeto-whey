@@ -59,11 +59,12 @@ export default function Footer() {
 
         <div className="footer-bottom">
           <div className="footer-legal">
-            <Link href="/politica-de-privacidade">Política de Privacidade</Link>
-            <Link href="/termos-de-uso">Termos de Uso</Link>
             <Link href="/?sort=p30">Melhor custo-benefício</Link>
           </div>
-          <span className="footer-copy">© {year} WheyMais — Todos os direitos reservados</span>
+          <span className="footer-copy">
+            © {year} WheyMais — Desenvolvido por{' '}
+            <a href="mailto:endrio.alberton@gmail.com">endrio.alberton@gmail.com</a>
+          </span>
         </div>
 
       </div>
