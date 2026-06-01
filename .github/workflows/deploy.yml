@@ -15,20 +15,21 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd /home/ubuntu/app
-
+            cd /home/ubuntu/projeto-whey
             git pull origin main
 
-            # Django (pasta api)
-            cd api
-            source ../venv/bin/activate
-            pip install -r requirements.txt
-            python manage.py migrate --noinput
-            python manage.py collectstatic --noinput
-            sudo systemctl restart gunicorn
-
             # Next.js (pasta site)
-            cd /home/ubuntu/app/site
+            cd /home/ubuntu/projeto-whey/site
             npm install
             npm run build
-            pm2 restart nextjs
+            pm2 restart nextjs || pm2 start npm --name "nextjs" -- start
+
+            # Django (pasta api) - só roda se a pasta existir
+            if [ -d "/home/ubuntu/projeto-whey/api" ] && [ -f "/home/ubuntu/projeto-whey/api/manage.py" ]; then
+              cd /home/ubuntu/projeto-whey/api
+              source /home/ubuntu/projeto-whey/venv/bin/activate
+              pip install -r requirements.txt
+              python manage.py migrate --noinput
+              python manage.py collectstatic --noinput
+              sudo systemctl restart gunicorn
+            fi
