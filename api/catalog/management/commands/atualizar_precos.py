@@ -16,11 +16,11 @@ class Command(BaseCommand):
         self.stdout.write(f'Atualizando preços de {total} produtos ML...')
 
         for p in produtos:
-            if not p.url_afiliado or p.url_afiliado == '#':
+            if not p.url_produto:
                 continue
 
             try:
-                dados = fetch_mercadolivre(p.url_afiliado)
+                dados = fetch_mercadolivre(p.url_produto)
 
                 if 'erro' in dados:
                     self.stdout.write(self.style.WARNING(f'  [{p.id}] {p.nome}: {dados["erro"]}'))

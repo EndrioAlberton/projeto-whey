@@ -70,7 +70,7 @@ class ProdutoAdmin(admin.ModelAdmin):
             'fields': ('tamanho', 'dose_g', 'proteina_g', 'doses_display')
         }),
         ('Preço e link', {
-            'fields': ('preco', 'url_afiliado', 'custo_por_dose_display', 'custo_30g_display')
+            'fields': ('preco', 'url_produto', 'url_afiliado', 'custo_por_dose_display', 'custo_30g_display')
         }),
         ('Metadados', {
             'fields': ('atualizado_em',)
@@ -87,11 +87,11 @@ class ProdutoAdmin(admin.ModelAdmin):
 
     def atualizar_todos_view(self, request):
         from catalog.fetchers import fetch_mercadolivre
-        produtos = Produto.objects.filter(plataforma__codigo='ML').exclude(url_afiliado='').exclude(url_afiliado='#')
+        produtos = Produto.objects.filter(plataforma__codigo='ML').exclude(url_produto='')
         atualizados = erros = 0
         for p in produtos:
             try:
-                dados = fetch_mercadolivre(p.url_afiliado)
+                dados = fetch_mercadolivre(p.url_produto)
                 if 'erro' in dados or not dados.get('price'):
                     erros += 1
                     continue
@@ -160,10 +160,10 @@ class ProdutoAdmin(admin.ModelAdmin):
         from catalog.fetchers import fetch_mercadolivre
         atualizados = erros = 0
         for p in queryset.filter(plataforma__codigo='ML'):
-            if not p.url_afiliado or p.url_afiliado == '#':
+            if not p.url_produto:
                 continue
             try:
-                dados = fetch_mercadolivre(p.url_afiliado)
+                dados = fetch_mercadolivre(p.url_produto)
                 if 'erro' in dados or not dados.get('price'):
                     erros += 1
                     continue

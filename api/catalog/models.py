@@ -60,7 +60,8 @@ class Produto(models.Model):
     dose_g        = models.IntegerField(default=30)
     proteina_g    = models.DecimalField(max_digits=5, decimal_places=1)
     sabor         = models.ForeignKey(Sabor,      on_delete=models.PROTECT, related_name='produtos')
-    url_afiliado  = models.URLField()
+    url_produto   = models.URLField(blank=True, help_text='Link limpo do produto (usado para atualizar preços)')
+    url_afiliado  = models.URLField(blank=True, help_text='Link de afiliado exibido pro usuário')
     url_imagem    = models.URLField(blank=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
