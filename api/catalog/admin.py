@@ -25,6 +25,7 @@ def _match_nome_em_texto(texto: str, queryset) -> object | None:
             return obj
     return None
 from django.http import JsonResponse
+from django.shortcuts import redirect
 from django.urls import path
 from .models import Marca, Plataforma, Sabor, Tamanho, Produto
 
@@ -57,6 +58,7 @@ class ProdutoAdmin(admin.ModelAdmin):
     search_fields  = ('nome', 'marca__nome', 'sabor__nome')
     readonly_fields = ('atualizado_em', 'doses_display', 'custo_por_dose_display', 'custo_30g_display')
     actions        = ['atualizar_precos']
+    change_list_template = 'admin/catalog/produto/change_list.html'
     class Media:
         js = ('admin/js/buscar_link.js',)
 
@@ -79,8 +81,30 @@ class ProdutoAdmin(admin.ModelAdmin):
         urls = super().get_urls()
         extra = [
             path('buscar-link/', self.admin_site.admin_view(self.buscar_link_view), name='catalog_produto_buscar_link'),
+            path('atualizar-todos-precos/', self.admin_site.admin_view(self.atualizar_todos_view), name='catalog_produto_atualizar_todos'),
         ]
         return extra + urls
+
+    def atualizar_todos_view(self, request):
+        from catalog.fetchers import fetch_mercadolivre
+        produtos = Produto.objects.filter(plataforma__codigo='ML').exclude(url_afiliado='').exclude(url_afiliado='#')
+        atualizados = erros = 0
+        for p in produtos:
+            try:
+                dados = fetch_mercadolivre(p.url_afiliado)
+                if 'erro' in dados or not dados.get('price'):
+                    erros += 1
+                    continue
+                novo = Decimal(str(dados['price']))
+                if novo != p.preco:
+                    p.preco = novo
+                    p.save(update_fields=['preco', 'atualizado_em'])
+                atualizados += 1
+            except Exception:
+                erros += 1
+        nivel = messages.SUCCESS if not erros else messages.WARNING
+        self.message_user(request, f'{atualizados} preços atualizados, {erros} erros.', nivel)
+        return redirect('../')
 
     def buscar_link_view(self, request):
         if request.method != 'POST':
