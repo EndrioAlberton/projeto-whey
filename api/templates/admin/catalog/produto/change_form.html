@@ -1,0 +1,34 @@
+{% extends "admin/change_form.html" %}
+
+{% block content %}
+<div id="buscar-box" style="
+  background:#f0f4f8;
+  border:1px solid #c8d7e1;
+  border-left:4px solid #417690;
+  border-radius:4px;
+  padding:16px 20px;
+  margin-bottom:20px;
+">
+  <strong style="display:block;margin-bottom:10px;color:#417690;">Buscar dados pelo link do produto</strong>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+    <input
+      id="buscar-url-input"
+      type="url"
+      placeholder="Cole o link do Mercado Livre ou Amazon..."
+      style="flex:1;min-width:280px;padding:8px 10px;border:1px solid #ccc;border-radius:4px;font-size:13px;"
+    />
+    <button type="button" id="buscar-btn"
+      style="padding:8px 16px;background:#417690;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;font-weight:bold;">
+      Buscar dados
+    </button>
+  </div>
+  <span id="buscar-status" style="display:block;margin-top:8px;font-size:13px;"></span>
+  <small style="color:#888;">Preenche: nome, preço, imagem e tamanho. Proteína por dose deve ser preenchida manualmente.</small>
+</div>
+
+<script>
+  window.BUSCAR_LINK_URL = '{% url "admin:catalog_produto_buscar_link" %}';
+</script>
+
+{{ block.super }}
+{% endblock %}

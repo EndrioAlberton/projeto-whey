@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { Zap } from 'lucide-react'
-import { getProducts } from '../lib/mock-products'
+import { getProdutos, getOpcoesFiltros } from '../lib/api'
 import CatalogClient from '../components/CatalogClient'
 import ThemeToggle from '../components/ThemeToggle'
 
@@ -9,8 +9,11 @@ export const metadata = {
   description: 'Compare os melhores wheys do Brasil pelo custo por 30g de proteína. Filtros por marca, sabor e proteína mínima. Preços atualizados diariamente.',
 }
 
-export default function Home() {
-  const products = getProducts()
+export default async function Home() {
+  const [produtos, opcoes] = await Promise.all([
+    getProdutos(),
+    getOpcoesFiltros(),
+  ])
 
   return (
     <main className="wrap">
@@ -24,11 +27,11 @@ export default function Home() {
       </header>
 
       <h1 style={{ fontSize: 14, color: 'var(--mut)', fontWeight: 400, marginBottom: 18 }}>
-        Compare {products.length} wheys pelo <strong style={{ color: 'var(--lime)' }}>custo por 30g de proteína</strong>
+        Compare {produtos.length} wheys pelo <strong style={{ color: 'var(--lime)' }}>custo por 30g de proteína</strong>
       </h1>
 
       <Suspense fallback={<div className="empty">Carregando...</div>}>
-        <CatalogClient products={products} />
+        <CatalogClient produtos={produtos} opcoes={opcoes} />
       </Suspense>
 
       <p style={{ marginTop: 40, fontSize: 11, color: 'var(--mut)', lineHeight: 1.6 }}>

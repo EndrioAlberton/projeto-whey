@@ -5,61 +5,60 @@ import { useSearchParams } from 'next/navigation'
 import { SlidersHorizontal } from 'lucide-react'
 import ProductCard from './ProductCard'
 
-const SORT_OPTIONS = [
-  { value: 'p30',   label: 'Melhor custo por proteína' },
-  { value: 'dose',  label: 'Menor custo por dose' },
-  { value: 'price', label: 'Menor preço' },
-  { value: 'prot',  label: 'Mais proteína por dose' },
+const OPCOES_ORDENACAO = [
+  { value: 'p30',    label: 'Melhor custo por proteína' },
+  { value: 'dose',   label: 'Menor custo por dose' },
+  { value: 'preco',  label: 'Menor preço' },
+  { value: 'prot',   label: 'Mais proteína por dose' },
 ]
 
-const sorters = {
-  p30:   (a, b) => a.cost_per_30g_protein - b.cost_per_30g_protein,
-  dose:  (a, b) => a.cost_per_dose - b.cost_per_dose,
-  price: (a, b) => a.price - b.price,
-  prot:  (a, b) => b.protein_g - a.protein_g,
+const ordenadores = {
+  p30:   (a, b) => a.custo_por_30g_proteina - b.custo_por_30g_proteina,
+  dose:  (a, b) => a.custo_por_dose - b.custo_por_dose,
+  preco: (a, b) => a.preco - b.preco,
+  prot:  (a, b) => b.proteina_g - a.proteina_g,
 }
 
-// Agrupa peso em baldes legíveis: ~900g, ~1kg, ~2kg
-function sizeBucket(weight_g) {
-  if (weight_g >= 1800) return '2000'
-  if (weight_g >= 950)  return '1000'
+function faixaPeso(peso_g) {
+  if (peso_g >= 1800) return '2000'
+  if (peso_g >= 950)  return '1000'
   return '900'
 }
 
-export default function CatalogClient({ products }) {
+export default function CatalogClient({ produtos, opcoes = {} }) {
   const params = useSearchParams()
 
-  const [fBrand,   setFBrand]   = useState('')
-  const [fFlavor,  setFFlavor]  = useState('')
-  const [fSize,    setFSize]    = useState('')
-  const [fMinProt, setFMinProt] = useState(0)
-  const [sort,     setSort]     = useState('p30')
+  const [fMarca,      setFMarca]      = useState('')
+  const [fSabor,      setFSabor]      = useState('')
+  const [fTamanho,    setFTamanho]    = useState('')
+  const [fProtMin,    setFProtMin]    = useState(0)
+  const [ordenar,     setOrdenar]     = useState('p30')
 
-  // Inicializa filtros a partir dos query params
   useEffect(() => {
-    if (params.get('brand'))  setFBrand(params.get('brand'))
-    if (params.get('flavor')) setFFlavor(params.get('flavor'))
-    if (params.get('size'))   setFSize(params.get('size'))
-    if (params.get('sort'))   setSort(params.get('sort'))
+    if (params.get('marca'))   setFMarca(params.get('marca'))
+    if (params.get('sabor'))   setFSabor(params.get('sabor'))
+    if (params.get('tamanho')) setFTamanho(params.get('tamanho'))
+    if (params.get('ordenar')) setOrdenar(params.get('ordenar'))
   }, [params])
 
-  const brands  = [...new Set(products.map((p) => p.brand))]
-  const flavors = [...new Set(products.map((p) => p.flavor))]
+  const marcas  = opcoes.marcas  || [...new Set(produtos.map((p) => p.marca))]
+  const sabores = opcoes.sabores || [...new Set(produtos.map((p) => p.sabor))]
+  const tamanhos = opcoes.tamanhos || []
 
-  const view = useMemo(() => {
-    return [...products]
+  const lista = useMemo(() => {
+    return [...produtos]
       .filter((p) =>
-        (!fBrand  || p.brand  === fBrand)  &&
-        (!fFlavor || p.flavor === fFlavor) &&
-        (!fSize   || sizeBucket(p.weight_g) === fSize) &&
-        p.protein_g >= fMinProt
+        (!fMarca   || p.marca  === fMarca)  &&
+        (!fSabor   || p.sabor  === fSabor)  &&
+        (!fTamanho || faixaPeso(p.peso_g) === fTamanho) &&
+        p.proteina_g >= fProtMin
       )
-      .sort(sorters[sort])
-  }, [products, fBrand, fFlavor, fSize, fMinProt, sort])
+      .sort(ordenadores[ordenar])
+  }, [produtos, fMarca, fSabor, fTamanho, fProtMin, ordenar])
 
-  const bestId = useMemo(() =>
-    view.length ? [...view].sort(sorters.p30)[0].id : null,
-  [view])
+  const melhorId = useMemo(() =>
+    lista.length ? [...lista].sort(ordenadores.p30)[0].id : null,
+  [lista])
 
   return (
     <>
@@ -67,44 +66,44 @@ export default function CatalogClient({ products }) {
         <SlidersHorizontal size={18} color="var(--mut)" />
         <div className="fgroup">
           <label>Marca</label>
-          <select value={fBrand} onChange={(e) => setFBrand(e.target.value)}>
+          <select value={fMarca} onChange={(e) => setFMarca(e.target.value)}>
             <option value="">Todas</option>
-            {brands.map((b) => <option key={b} value={b}>{b}</option>)}
+            {marcas.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
         <div className="fgroup">
           <label>Sabor</label>
-          <select value={fFlavor} onChange={(e) => setFFlavor(e.target.value)}>
+          <select value={fSabor} onChange={(e) => setFSabor(e.target.value)}>
             <option value="">Todos</option>
-            {flavors.map((f) => <option key={f} value={f}>{f}</option>)}
+            {sabores.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
         <div className="fgroup">
           <label>Tamanho</label>
-          <select value={fSize} onChange={(e) => setFSize(e.target.value)}>
+          <select value={fTamanho} onChange={(e) => setFTamanho(e.target.value)}>
             <option value="">Todos</option>
-            <option value="900">~900g</option>
-            <option value="1000">~1kg</option>
-            <option value="2000">~2kg</option>
+            {tamanhos.map((t) => (
+              <option key={t.peso_g} value={t.peso_g}>{t.rotulo}</option>
+            ))}
           </select>
         </div>
         <div className="fgroup">
-          <label>Proteína mín / dose: {fMinProt}g</label>
-          <input type="range" min="0" max="30" value={fMinProt} onChange={(e) => setFMinProt(+e.target.value)} />
+          <label>Proteína mín / dose: {fProtMin}g</label>
+          <input type="range" min="0" max="30" value={fProtMin} onChange={(e) => setFProtMin(+e.target.value)} />
         </div>
         <div className="fgroup" style={{ marginLeft: 'auto' }}>
           <label>Ordenar por</label>
-          <select value={sort} onChange={(e) => setSort(e.target.value)}>
-            {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          <select value={ordenar} onChange={(e) => setOrdenar(e.target.value)}>
+            {OPCOES_ORDENACAO.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
       </div>
 
       <div className="grid">
-        {view.map((p) => (
-          <ProductCard key={p.id} product={p} isBest={p.id === bestId} />
+        {lista.map((p) => (
+          <ProductCard key={p.id} produto={p} isMelhor={p.id === melhorId} />
         ))}
-        {!view.length && <div className="empty">Nenhum produto com esses filtros.</div>}
+        {!lista.length && <div className="empty">Nenhum produto com esses filtros.</div>}
       </div>
     </>
   )
