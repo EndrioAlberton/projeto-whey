@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       if (data.name)      setVal('id_nome',       data.name);
-      if (data.price)     setVal('id_preco',       String(data.price).replace('.', ','));
+      if (data.price !== null && data.price !== undefined) setVal('id_preco', data.price);
       if (data.image_url) setVal('id_url_imagem',  data.image_url);
       setVal('id_url_afiliado', url);
 
