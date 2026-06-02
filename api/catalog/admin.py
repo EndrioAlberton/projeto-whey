@@ -1,5 +1,7 @@
 import json
+from decimal import Decimal
 from django.contrib import admin
+from django.contrib import messages
 
 
 def _match_nome(busca: str, queryset) -> object | None:
@@ -54,6 +56,7 @@ class ProdutoAdmin(admin.ModelAdmin):
     list_filter    = ('plataforma', 'marca', 'sabor', 'tamanho')
     search_fields  = ('nome', 'marca__nome', 'sabor__nome')
     readonly_fields = ('atualizado_em', 'doses_display', 'custo_por_dose_display', 'custo_30g_display')
+    actions        = ['atualizar_precos']
     class Media:
         js = ('admin/js/buscar_link.js',)
 
@@ -128,6 +131,27 @@ class ProdutoAdmin(admin.ModelAdmin):
             dados['plataforma_id'] = plataforma.id
 
         return JsonResponse(dados)
+
+    def atualizar_precos(self, request, queryset):
+        from catalog.fetchers import fetch_mercadolivre
+        atualizados = erros = 0
+        for p in queryset.filter(plataforma__codigo='ML'):
+            if not p.url_afiliado or p.url_afiliado == '#':
+                continue
+            try:
+                dados = fetch_mercadolivre(p.url_afiliado)
+                if 'erro' in dados or not dados.get('price'):
+                    erros += 1
+                    continue
+                novo = Decimal(str(dados['price']))
+                if novo != p.preco:
+                    p.preco = novo
+                    p.save(update_fields=['preco', 'atualizado_em'])
+                atualizados += 1
+            except Exception:
+                erros += 1
+        self.message_user(request, f'{atualizados} preços atualizados, {erros} erros.', messages.SUCCESS if not erros else messages.WARNING)
+    atualizar_precos.short_description = 'Atualizar preços via ML'
 
     def custo_display(self, obj):
         return f'R$ {obj.custo_por_30g_proteina:.2f} / 30g' if obj.custo_por_30g_proteina else '—'
