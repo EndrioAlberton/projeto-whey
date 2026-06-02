@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (data.name)      setVal('id_nome',       data.name);
       if (data.price !== null && data.price !== undefined) setVal('id_preco', data.price);
       if (data.image_url) setVal('id_url_imagem',  data.image_url);
-      setVal('id_url_afiliado', url);
+      setVal('id_url_produto', url);
 
       if (data.tamanho_id)    setDropdown('id_tamanho',    data.tamanho_id);
       if (data.marca_id)      setDropdown('id_marca',      data.marca_id);
