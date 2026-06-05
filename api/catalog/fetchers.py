@@ -2,9 +2,56 @@ import os
 import re
 import time
 import requests
+from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
 _ml_token_cache = {'token': None, 'expires_at': 0}
+
+
+def _update_env(key: str, value: str):
+    env_path = Path(__file__).resolve().parent.parent / '.env'
+    content = env_path.read_text(encoding='utf-8') if env_path.exists() else ''
+    lines = content.splitlines()
+    updated = False
+    for i, line in enumerate(lines):
+        if line.startswith(f'{key}='):
+            lines[i] = f'{key}={value}'
+            updated = True
+            break
+    if not updated:
+        lines.append(f'{key}={value}')
+    env_path.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+
+
+def _refresh_token() -> str | None:
+    refresh_token = os.environ.get('ML_REFRESH_TOKEN')
+    app_id = os.environ.get('ML_APP_ID')
+    secret = os.environ.get('ML_SECRET')
+    if not all([refresh_token, app_id, secret]):
+        return None
+
+    resp = requests.post('https://api.mercadolibre.com/oauth/token', data={
+        'grant_type':    'refresh_token',
+        'client_id':     app_id,
+        'client_secret': secret,
+        'refresh_token': refresh_token,
+    }, timeout=10)
+
+    if resp.status_code != 200:
+        return None
+
+    data = resp.json()
+    access_token  = data.get('access_token')
+    new_refresh   = data.get('refresh_token', refresh_token)
+
+    os.environ['ML_ACCESS_TOKEN']  = access_token
+    os.environ['ML_REFRESH_TOKEN'] = new_refresh
+    _update_env('ML_ACCESS_TOKEN',  access_token)
+    _update_env('ML_REFRESH_TOKEN', new_refresh)
+
+    _ml_token_cache['token']      = access_token
+    _ml_token_cache['expires_at'] = time.time() + data.get('expires_in', 21600) - 60
+    return access_token
 
 
 def _get_ml_token() -> str | None:
@@ -13,31 +60,19 @@ def _get_ml_token() -> str | None:
     if _ml_token_cache['token'] and time.time() < _ml_token_cache['expires_at']:
         return _ml_token_cache['token']
 
-    # Usa access_token direto se disponível
+    # Tenta renovar via refresh_token primeiro
+    token = _refresh_token()
+    if token:
+        return token
+
+    # Fallback: access_token direto do env (pode estar expirado)
     access_token = os.environ.get('ML_ACCESS_TOKEN')
     if access_token:
         _ml_token_cache['token']      = access_token
         _ml_token_cache['expires_at'] = time.time() + 3600
         return access_token
 
-    app_id = os.environ.get('ML_APP_ID')
-    secret = os.environ.get('ML_SECRET')
-    if not app_id or not secret:
-        return None
-
-    resp = requests.post('https://api.mercadolibre.com/oauth/token', data={
-        'grant_type':    'client_credentials',
-        'client_id':     app_id,
-        'client_secret': secret,
-    }, timeout=10)
-
-    if resp.status_code != 200:
-        return None
-
-    data = resp.json()
-    _ml_token_cache['token']      = data.get('access_token')
-    _ml_token_cache['expires_at'] = time.time() + data.get('expires_in', 21600) - 60
-    return _ml_token_cache['token']
+    return None
 
 
 def _extract_ml_ids(url: str) -> dict:

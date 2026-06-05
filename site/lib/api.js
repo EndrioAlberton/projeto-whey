@@ -9,7 +9,7 @@ export async function getProdutos({ marca, sabor, tamanho, proteina_min, ordenar
 
   const url = `${API_URL}/api/produtos/?${params.toString()}`
 
-  const res = await fetch(url, { next: { revalidate: 300 } })
+  const res = await fetch(url, { cache: 'no-store' })
   if (!res.ok) return []
 
   const data = await res.json()
@@ -18,9 +18,9 @@ export async function getProdutos({ marca, sabor, tamanho, proteina_min, ordenar
 
 export async function getOpcoesFiltros() {
   const [marcas, sabores, tamanhos] = await Promise.all([
-    fetch(`${API_URL}/api/marcas/`,    { next: { revalidate: 300 } }).then(r => r.json()),
-    fetch(`${API_URL}/api/sabores/`,   { next: { revalidate: 300 } }).then(r => r.json()),
-    fetch(`${API_URL}/api/tamanhos/`,  { next: { revalidate: 300 } }).then(r => r.json()),
+    fetch(`${API_URL}/api/marcas/`,    { cache: 'no-store' }).then(r => r.json()),
+    fetch(`${API_URL}/api/sabores/`,   { cache: 'no-store' }).then(r => r.json()),
+    fetch(`${API_URL}/api/tamanhos/`,  { cache: 'no-store' }).then(r => r.json()),
   ])
   return {
     marcas:   (marcas.results   ?? marcas).map(m => m.nome),
