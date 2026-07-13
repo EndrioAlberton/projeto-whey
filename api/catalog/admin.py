@@ -27,7 +27,23 @@ def _match_nome_em_texto(texto: str, queryset) -> object | None:
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.urls import path
-from .models import Marca, Plataforma, Sabor, Tamanho, Produto
+from django.utils import timezone
+from .models import Marca, Plataforma, Sabor, Tamanho, Produto, MLToken
+
+
+@admin.register(MLToken)
+class MLTokenAdmin(admin.ModelAdmin):
+    list_display = ('__str__', 'status', 'expires_at', 'atualizado_em')
+    readonly_fields = ('atualizado_em',)
+
+    def status(self, obj):
+        if obj.expires_at and timezone.now() < obj.expires_at:
+            return '✓ válido'
+        return '✗ expirado (renova na próxima chamada)'
+    status.short_description = 'Status'
+
+    def has_add_permission(self, request):
+        return not MLToken.objects.exists()
 
 
 @admin.register(Marca)

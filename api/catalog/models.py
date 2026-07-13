@@ -1,6 +1,23 @@
 from django.db import models
 
 
+class MLToken(models.Model):
+    """Token OAuth do Mercado Livre — fonte única compartilhada entre todos os
+    workers do gunicorn. Linha única (pk=1). Evita a rotação do refresh_token
+    quebrar entre processos separados."""
+    access_token  = models.TextField(blank=True)
+    refresh_token = models.TextField(blank=True)
+    expires_at    = models.DateTimeField(null=True, blank=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Token Mercado Livre'
+        verbose_name_plural = 'Token Mercado Livre'
+
+    def __str__(self):
+        return f'Token ML (atualizado {self.atualizado_em:%d/%m %H:%M})'
+
+
 class Marca(models.Model):
     nome = models.CharField(max_length=100, unique=True)
 

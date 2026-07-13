@@ -1,76 +1,96 @@
 import os
 import re
 import time
+import logging
 import requests
-from pathlib import Path
+from datetime import timedelta
 from urllib.parse import urlparse, parse_qs
 
+from django.db import transaction
+from django.utils import timezone
+
+logger = logging.getLogger(__name__)
+
+# Cache in-process de curta duração: evita bater no banco a cada request.
+# A fonte de verdade é a linha MLToken (compartilhada entre todos os workers).
 _ml_token_cache = {'token': None, 'expires_at': 0}
+_MEM_TTL = 300  # 5 min
 
 
-def _update_env(key: str, value: str):
-    env_path = Path(__file__).resolve().parent.parent / '.env'
-    content = env_path.read_text(encoding='utf-8') if env_path.exists() else ''
-    lines = content.splitlines()
-    updated = False
-    for i, line in enumerate(lines):
-        if line.startswith(f'{key}='):
-            lines[i] = f'{key}={value}'
-            updated = True
-            break
-    if not updated:
-        lines.append(f'{key}={value}')
-    env_path.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+def _load_row(lock: bool = False):
+    """Retorna a linha única de MLToken (pk=1), criando a partir do .env na
+    primeira vez. Com lock=True usa select_for_update (exige transaction)."""
+    from catalog.models import MLToken
+
+    MLToken.objects.get_or_create(pk=1, defaults={
+        'access_token':  os.environ.get('ML_ACCESS_TOKEN', ''),
+        'refresh_token': os.environ.get('ML_REFRESH_TOKEN', ''),
+        # sem expires_at => tratado como expirado => renova na primeira chamada
+    })
+    qs = MLToken.objects.select_for_update() if lock else MLToken.objects
+    return qs.get(pk=1)
 
 
-def _refresh_token() -> str | None:
-    refresh_token = os.environ.get('ML_REFRESH_TOKEN')
+def _cache_mem(access_token: str):
+    _ml_token_cache['token']      = access_token
+    _ml_token_cache['expires_at'] = time.time() + _MEM_TTL
+
+
+def _refresh_token(row) -> str | None:
+    """Renova usando o refresh_token da linha e persiste os tokens novos.
+    Chamado sob select_for_update, então só um worker renova por vez."""
     app_id = os.environ.get('ML_APP_ID')
     secret = os.environ.get('ML_SECRET')
-    if not all([refresh_token, app_id, secret]):
+    if not all([row.refresh_token, app_id, secret]):
         return None
 
-    resp = requests.post('https://api.mercadolibre.com/oauth/token', data={
-        'grant_type':    'refresh_token',
-        'client_id':     app_id,
-        'client_secret': secret,
-        'refresh_token': refresh_token,
-    }, timeout=10)
+    try:
+        resp = requests.post('https://api.mercadolibre.com/oauth/token', data={
+            'grant_type':    'refresh_token',
+            'client_id':     app_id,
+            'client_secret': secret,
+            'refresh_token': row.refresh_token,
+        }, timeout=10)
+    except requests.RequestException as e:
+        logger.warning('Falha de rede ao renovar token ML: %s', e)
+        return None
 
     if resp.status_code != 200:
+        logger.warning('Erro ao renovar token ML: %s %s', resp.status_code, resp.text[:200])
         return None
 
     data = resp.json()
-    access_token  = data.get('access_token')
-    new_refresh   = data.get('refresh_token', refresh_token)
-
-    os.environ['ML_ACCESS_TOKEN']  = access_token
-    os.environ['ML_REFRESH_TOKEN'] = new_refresh
-    _update_env('ML_ACCESS_TOKEN',  access_token)
-    _update_env('ML_REFRESH_TOKEN', new_refresh)
-
-    _ml_token_cache['token']      = access_token
-    _ml_token_cache['expires_at'] = time.time() + data.get('expires_in', 21600) - 60
+    access_token = data.get('access_token')
+    row.access_token  = access_token
+    row.refresh_token = data.get('refresh_token', row.refresh_token)
+    row.expires_at    = timezone.now() + timedelta(seconds=data.get('expires_in', 21600) - 60)
+    row.save(update_fields=['access_token', 'refresh_token', 'expires_at', 'atualizado_em'])
+    _cache_mem(access_token)
     return access_token
 
 
 def _get_ml_token() -> str | None:
-    global _ml_token_cache
-
+    # Fast path: cache em memória do próprio processo.
     if _ml_token_cache['token'] and time.time() < _ml_token_cache['expires_at']:
         return _ml_token_cache['token']
 
-    # Tenta renovar via refresh_token primeiro
-    token = _refresh_token()
-    if token:
-        return token
+    with transaction.atomic():
+        row = _load_row(lock=True)
 
-    # Fallback: access_token direto do env (pode estar expirado)
-    access_token = os.environ.get('ML_ACCESS_TOKEN')
-    if access_token:
-        _ml_token_cache['token']      = access_token
-        _ml_token_cache['expires_at'] = time.time() + 3600
-        return access_token
+        # Access token ainda válido no banco?
+        if row.access_token and row.expires_at and timezone.now() < row.expires_at:
+            _cache_mem(row.access_token)
+            return row.access_token
+
+        # Expirado (ou sem validade): renova.
+        token = _refresh_token(row)
+        if token:
+            return token
+
+        # Fallback: devolve o access_token atual mesmo possivelmente expirado.
+        if row.access_token:
+            _cache_mem(row.access_token)
+            return row.access_token
 
     return None
 

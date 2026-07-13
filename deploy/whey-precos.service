@@ -1,0 +1,10 @@
+[Unit]
+Description=Atualiza precos dos produtos via API do Mercado Livre
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/home/ubuntu/projeto-whey/api
+ExecStart=/home/ubuntu/projeto-whey/venv/bin/python manage.py atualizar_precos

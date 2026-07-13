@@ -49,6 +49,17 @@ def _trocar_code(code: str):
     access_token  = data.get('access_token', '')
     refresh_token = data.get('refresh_token', '')
 
+    # Fonte de verdade: linha única no banco, compartilhada entre os workers.
+    from datetime import timedelta
+    from django.utils import timezone
+    from catalog.models import MLToken
+    MLToken.objects.update_or_create(pk=1, defaults={
+        'access_token':  access_token,
+        'refresh_token': refresh_token,
+        'expires_at':    timezone.now() + timedelta(seconds=data.get('expires_in', 21600) - 60),
+    })
+
+    # Backup em .env/os.environ (usado só pro bootstrap inicial da linha).
     env_path = Path(__file__).resolve().parent.parent / '.env'
     _update_env(env_path, 'ML_REFRESH_TOKEN', refresh_token)
     _update_env(env_path, 'ML_ACCESS_TOKEN',  access_token)
