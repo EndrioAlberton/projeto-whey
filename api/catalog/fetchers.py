@@ -119,23 +119,15 @@ def _extract_ml_ids(url: str) -> dict:
     return {'product_id': product_id, 'item_id': item_id}
 
 
-def fetch_mercadolivre(url: str) -> dict:
-    token = _get_ml_token()
-    if not token:
-        return {'erro': 'Credenciais do Mercado Livre não configuradas.'}
-
-    ids = _extract_ml_ids(url)
+def _fetch_product_details(product_id: str, token: str) -> dict:
+    """Busca nome/marca/preço/imagem/peso de um product_id de catálogo já
+    conhecido. Usada tanto pelo fetch de 1 link (fetch_mercadolivre) quanto
+    pela importação em massa (buscar_produtos_ml)."""
     headers = {'Authorization': f'Bearer {token}'}
 
-    # Usa a API de catálogo de produtos (funciona com permissão básica)
-    product_id = ids.get('product_id')
-    if not product_id:
-        return {'erro': 'ID do produto não encontrado na URL. Use um link de catálogo (/p/MLB...).'}
-
-    # Busca dados do produto (nome, imagem, marca, peso)
     r = requests.get(f'https://api.mercadolibre.com/products/{product_id}', headers=headers, timeout=10)
     if r.status_code != 200:
-        return {'erro': f'Erro ao buscar produto: {r.status_code}'}
+        return {'erro': f'Erro ao buscar produto {product_id}: {r.status_code}'}
 
     data = r.json()
 
@@ -159,13 +151,173 @@ def fetch_mercadolivre(url: str) -> dict:
             preco = min(precos)
 
     return {
-        'platform':  'ML',
-        'name':      data.get('name', ''),
-        'brand':     attrs.get('BRAND', ''),
-        'price':     preco,
-        'image_url': image_url,
-        'peso_g':    peso_g,
+        'platform':   'ML',
+        'product_id': product_id,
+        'name':       data.get('name', ''),
+        'brand':      attrs.get('BRAND', ''),
+        'price':      preco,
+        'image_url':  image_url,
+        'peso_g':     peso_g,
     }
+
+
+def fetch_mercadolivre(url: str) -> dict:
+    token = _get_ml_token()
+    if not token:
+        return {'erro': 'Credenciais do Mercado Livre não configuradas.'}
+
+    product_id = _extract_ml_ids(url).get('product_id')
+    if not product_id:
+        return {'erro': 'ID do produto não encontrado na URL. Use um link de catálogo (/p/MLB...).'}
+
+    return _fetch_product_details(product_id, token)
+
+
+# Endpoints candidatos pra busca por termo. O ML restringe acesso a cada um
+# dependendo do app/permissão liberada, então tentamos em ordem e detectamos
+# em runtime qual responde 200 — sem precisar validar isso manualmente antes.
+_SEARCH_ENDPOINTS = [
+    ('catalog', 'https://api.mercadolibre.com/products/search',
+     lambda termo, limit, offset: {'status': 'active', 'site_id': 'MLB', 'q': termo, 'limit': limit, 'offset': offset}),
+    ('site', 'https://api.mercadolibre.com/sites/MLB/search',
+     lambda termo, limit, offset: {'q': termo, 'limit': limit, 'offset': offset}),
+]
+
+
+def search_mercadolivre(termo: str, limit: int = 50, offset: int = 0, token: str | None = None,
+                         endpoint: str | None = None) -> dict:
+    """Busca produtos por termo no ML. Tenta a API de catálogo
+    (/products/search) e, se não responder 200, cai pra busca geral do site
+    (/sites/MLB/search). Passe `endpoint` ('catalog' ou 'site') pra pular a
+    tentativa e ir direto num deles (usado por buscar_produtos_ml pra não
+    retestar os dois a cada página). Retorna o JSON bruto da resposta (com
+    uma chave extra '_endpoint' indicando qual funcionou) ou {'erro': ...}."""
+    token = token or _get_ml_token()
+    if not token:
+        return {'erro': 'Credenciais do Mercado Livre não configuradas.'}
+
+    headers = {'Authorization': f'Bearer {token}'}
+    limit = min(limit, 50)
+
+    candidatos = [e for e in _SEARCH_ENDPOINTS if endpoint is None or e[0] == endpoint]
+    ultimo_erro = None
+    for nome, url, montar_params in candidatos:
+        params = montar_params(termo, limit, offset)
+        try:
+            r = requests.get(url, headers=headers, params=params, timeout=15)
+        except requests.RequestException as e:
+            ultimo_erro = f'Erro de rede na busca ({nome}): {e}'
+            continue
+        if r.status_code == 200:
+            data = r.json()
+            data['_endpoint'] = nome
+            return data
+        ultimo_erro = f'Erro na busca "{termo}" ({nome}): {r.status_code} {r.text[:200]}'
+
+    return {'erro': ultimo_erro or 'Nenhum endpoint de busca disponível.'}
+
+
+def buscar_produtos_ml(termo: str, max_resultados: int = 30, sleep: float = 0.4):
+    """Generator: busca `termo` no ML, pagina, deduplica por product_id e
+    resolve os detalhes de cada produto encontrado (reaproveitando
+    _fetch_product_details). Yield um dict por produto no mesmo formato de
+    fetch_mercadolivre (com 'product_id') ou {'erro': ...} se a busca falhar."""
+    vistos = set()
+    coletados = 0
+    offset = 0
+    endpoint_escolhido = None
+    PAGE = 50
+
+    while coletados < max_resultados:
+        token = _get_ml_token()
+        if not token:
+            yield {'erro': 'Credenciais do Mercado Livre não configuradas.'}
+            return
+
+        pagina = search_mercadolivre(
+            termo, limit=min(PAGE, max_resultados - coletados), offset=offset,
+            token=token, endpoint=endpoint_escolhido,
+        )
+        if 'erro' in pagina:
+            yield pagina
+            return
+        endpoint_escolhido = pagina.get('_endpoint', endpoint_escolhido)
+
+        results = pagina.get('results', [])
+        if not results:
+            break
+
+        for item in results:
+            pid = item.get('catalog_product_id') or item.get('id')
+            if not pid or pid in vistos:
+                continue
+            vistos.add(pid)
+
+            time.sleep(sleep)  # evita estourar rate limit do ML
+            detalhe = _fetch_product_details(pid, token)
+            if 'erro' in detalhe:
+                # fallback: usa os dados crus do próprio resultado de busca
+                item_attrs = {a.get('id'): a.get('value_name')
+                              for a in item.get('attributes', []) if a.get('value_name')}
+                detalhe = {
+                    'platform':   'ML',
+                    'product_id': pid,
+                    'name':       item.get('title') or item.get('name', ''),
+                    'brand':      item_attrs.get('BRAND', ''),
+                    'price':      item.get('price'),
+                    'image_url':  item.get('thumbnail', ''),
+                    'peso_g':     _parse_peso(item_attrs.get('NET_WEIGHT') or item_attrs.get('WEIGHT')
+                                               or item_attrs.get('PACKAGE_WEIGHT')),
+                }
+
+            coletados += 1
+            yield detalhe
+            if coletados >= max_resultados:
+                break
+
+        offset += len(results)
+        total = pagina.get('paging', {}).get('total', offset)
+        if offset >= total:
+            break
+
+
+def _extrair_proteina_titulo(nome: str) -> int | None:
+    """Tentativa best-effort de achar a proteína por dose no título do
+    anúncio (ex.: "... 24g de proteína por dose ..."). NÃO confiável — serve
+    só de sugestão impressa no console pra acelerar o preenchimento manual.
+    proteina_g nunca é gravado a partir daqui."""
+    if not nome:
+        return None
+    m = re.search(
+        r'(\d{1,2})\s*g\.?\s*(?:de\s+)?prote[ií]na|prote[ií]na\D{0,10}?(\d{1,2})\s*g\b',
+        nome, re.IGNORECASE,
+    )
+    if not m:
+        return None
+    valor = int(m.group(1) or m.group(2))
+    return valor if 5 <= valor <= 40 else None
+
+
+def _match_nome(busca: str, queryset) -> object | None:
+    """Compara o texto buscado com os objetos do queryset de forma flexível."""
+    busca_l = busca.lower()
+    busca_palavras = set(busca_l.split())
+    for obj in queryset:
+        obj_l = obj.nome.lower()
+        obj_palavras = set(obj_l.split())
+        # Match exato, substring ou ao menos uma palavra em comum
+        if obj_l in busca_l or busca_l in obj_l or busca_palavras & obj_palavras:
+            return obj
+    return None
+
+
+def _match_nome_em_texto(texto: str, queryset) -> object | None:
+    """Procura o nome de cada objeto dentro do texto do produto."""
+    texto_l = texto.lower()
+    for obj in queryset:
+        if obj.nome.lower() in texto_l:
+            return obj
+    return None
 
 
 def _parse_peso(valor: str | None) -> int | None:

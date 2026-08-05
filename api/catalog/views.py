@@ -9,7 +9,9 @@ from .filters import ProdutoFilter
 
 
 class ProdutoViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Produto.objects.select_related('marca', 'plataforma', 'sabor', 'tamanho').all()
+    # proteina_g=0 = produto importado em massa ainda sem revisão manual
+    # (a API do ML não retorna proteína) — fica oculto até alguém preencher.
+    queryset = Produto.objects.select_related('marca', 'plataforma', 'sabor', 'tamanho').filter(proteina_g__gt=0)
     serializer_class = ProdutoSerializer
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = ProdutoFilter

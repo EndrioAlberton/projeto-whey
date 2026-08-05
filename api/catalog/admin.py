@@ -2,33 +2,12 @@ import json
 from decimal import Decimal
 from django.contrib import admin
 from django.contrib import messages
-
-
-def _match_nome(busca: str, queryset) -> object | None:
-    """Compara o texto buscado com os objetos do queryset de forma flexível."""
-    busca_l = busca.lower()
-    busca_palavras = set(busca_l.split())
-    for obj in queryset:
-        obj_l = obj.nome.lower()
-        obj_palavras = set(obj_l.split())
-        # Match exato, substring ou ao menos uma palavra em comum
-        if obj_l in busca_l or busca_l in obj_l or busca_palavras & obj_palavras:
-            return obj
-    return None
-
-
-def _match_nome_em_texto(texto: str, queryset) -> object | None:
-    """Procura o nome de cada objeto dentro do texto do produto."""
-    texto_l = texto.lower()
-    for obj in queryset:
-        if obj.nome.lower() in texto_l:
-            return obj
-    return None
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.urls import path
 from django.utils import timezone
 from .models import Marca, Plataforma, Sabor, Tamanho, Produto, MLToken
+from .fetchers import _match_nome, _match_nome_em_texto
 
 
 @admin.register(MLToken)
@@ -67,10 +46,28 @@ class TamanhoAdmin(admin.ModelAdmin):
     ordering = ('peso_g',)
 
 
+class PendenteRevisaoFilter(admin.SimpleListFilter):
+    """Produtos importados em massa entram com proteina_g=0 (a API do ML não
+    retorna isso) e ficam ocultos de /api/produtos/ até alguém preencher.
+    Esse filtro acha eles rápido na listagem do Admin."""
+    title = 'revisão de proteína'
+    parameter_name = 'pendente'
+
+    def lookups(self, request, model_admin):
+        return (('sim', 'Pendente (proteína = 0)'), ('nao', 'Completo'))
+
+    def queryset(self, request, queryset):
+        if self.value() == 'sim':
+            return queryset.filter(proteina_g=0)
+        if self.value() == 'nao':
+            return queryset.exclude(proteina_g=0)
+        return queryset
+
+
 @admin.register(Produto)
 class ProdutoAdmin(admin.ModelAdmin):
     list_display   = ('marca', 'nome', 'plataforma', 'preco', 'tamanho', 'proteina_g', 'sabor', 'custo_display', 'atualizado_em')
-    list_filter    = ('plataforma', 'marca', 'sabor', 'tamanho')
+    list_filter    = ('plataforma', 'marca', 'sabor', 'tamanho', PendenteRevisaoFilter)
     search_fields  = ('nome', 'marca__nome', 'sabor__nome')
     readonly_fields = ('atualizado_em', 'doses_display', 'custo_por_dose_display', 'custo_30g_display')
     actions        = ['atualizar_precos']
