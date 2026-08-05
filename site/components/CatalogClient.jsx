@@ -2,8 +2,10 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { SlidersHorizontal } from 'lucide-react'
+import { SlidersHorizontal, ChevronLeft, ChevronRight } from 'lucide-react'
 import ProductCard from './ProductCard'
+
+const POR_PAGINA = 9
 
 const OPCOES_ORDENACAO = [
   { value: 'p30',    label: 'Melhor custo por proteína' },
@@ -33,6 +35,7 @@ export default function CatalogClient({ produtos, opcoes = {} }) {
   const [fTamanho,    setFTamanho]    = useState('')
   const [fProtMin,    setFProtMin]    = useState(0)
   const [ordenar,     setOrdenar]     = useState('p30')
+  const [pagina,      setPagina]      = useState(1)
 
   useEffect(() => {
     if (params.get('marca'))   setFMarca(params.get('marca'))
@@ -59,6 +62,16 @@ export default function CatalogClient({ produtos, opcoes = {} }) {
   const melhorId = useMemo(() =>
     lista.length ? [...lista].sort(ordenadores.p30)[0].id : null,
   [lista])
+
+  // Volta pra página 1 sempre que filtro/ordenação muda — senão o usuário
+  // pode sobrar numa página vazia.
+  useEffect(() => { setPagina(1) }, [fMarca, fSabor, fTamanho, fProtMin, ordenar])
+
+  const totalPaginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA))
+  const paginaAtual  = Math.min(pagina, totalPaginas)
+  const listaPagina  = useMemo(() =>
+    lista.slice((paginaAtual - 1) * POR_PAGINA, paginaAtual * POR_PAGINA),
+  [lista, paginaAtual])
 
   return (
     <>
@@ -100,11 +113,31 @@ export default function CatalogClient({ produtos, opcoes = {} }) {
       </div>
 
       <div className="grid">
-        {lista.map((p) => (
+        {listaPagina.map((p) => (
           <ProductCard key={p.id} produto={p} isMelhor={p.id === melhorId} />
         ))}
         {!lista.length && <div className="empty">Nenhum produto com esses filtros.</div>}
       </div>
+
+      {lista.length > POR_PAGINA && (
+        <div className="pagination">
+          <button
+            className="page-btn"
+            onClick={() => setPagina((p) => Math.max(1, p - 1))}
+            disabled={paginaAtual === 1}
+          >
+            <ChevronLeft size={16} /> Anterior
+          </button>
+          <span className="page-info">Página {paginaAtual} de {totalPaginas}</span>
+          <button
+            className="page-btn"
+            onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+            disabled={paginaAtual === totalPaginas}
+          >
+            Próxima <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
     </>
   )
 }

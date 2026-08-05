@@ -41,6 +41,6 @@ class ProdutoSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'marca', 'nome', 'plataforma', 'preco',
             'peso_g', 'dose_g', 'proteina_g', 'sabor',
-            'url_afiliado', 'url_imagem', 'atualizado_em',
+            'url_afiliado', 'url_produto', 'url_imagem', 'atualizado_em',
             'doses', 'custo_por_dose', 'custo_por_30g_proteina',
         ]

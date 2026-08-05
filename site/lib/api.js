@@ -7,13 +7,23 @@ export async function getProdutos({ marca, sabor, tamanho, proteina_min, ordenar
   if (tamanho)      params.set('peso_g',       tamanho)
   if (proteina_min) params.set('proteina_min', proteina_min)
 
-  const url = `${API_URL}/api/produtos/?${params.toString()}`
+  let url = `${API_URL}/api/produtos/?${params.toString()}`
+  const produtos = []
 
-  const res = await fetch(url, { cache: 'no-store' })
-  if (!res.ok) return []
+  // A API do Django pagina (50/página) — segue "next" até acabar,
+  // senão só os 50 primeiros (por preço) apareceriam no site.
+  while (url) {
+    const res = await fetch(url, { cache: 'no-store' })
+    if (!res.ok) break
 
-  const data = await res.json()
-  return data.results ?? data
+    const data = await res.json()
+    if (Array.isArray(data)) return data // sem paginação (fallback)
+
+    produtos.push(...(data.results ?? []))
+    url = data.next
+  }
+
+  return produtos
 }
 
 export async function getOpcoesFiltros() {

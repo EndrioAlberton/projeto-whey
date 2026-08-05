@@ -3,6 +3,10 @@ import { Award, ShoppingCart } from 'lucide-react'
 const brl = (n) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
 export default function ProductCard({ produto: p, isMelhor }) {
+  // Sem link de afiliado ainda (produto recém-importado)? usa o link real
+  // do produto como fallback, senão o botão fica quebrado.
+  const link = p.url_afiliado || p.url_produto
+
   return (
     <div className={'card' + (isMelhor ? ' best' : '')}>
       {isMelhor && (
@@ -40,10 +44,17 @@ export default function ProductCard({ produto: p, isMelhor }) {
         <div className="price-row">
           <span className="price">{brl(p.preco)}</span>
         </div>
-        <a className="buy" href={p.url_afiliado} target="_blank" rel="nofollow noopener noreferrer sponsored">
-          <ShoppingCart size={16} />
-          Comprar no {p.plataforma === 'ML' ? 'Mercado Livre' : 'Amazon'}
-        </a>
+        {link ? (
+          <a className="buy" href={link} target="_blank" rel="nofollow noopener noreferrer sponsored">
+            <ShoppingCart size={16} />
+            Comprar no {p.plataforma === 'ML' ? 'Mercado Livre' : 'Amazon'}
+          </a>
+        ) : (
+          <span className="buy" style={{ opacity: .5, cursor: 'not-allowed' }}>
+            <ShoppingCart size={16} />
+            Link indisponível
+          </span>
+        )}
       </div>
     </div>
   )

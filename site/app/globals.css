@@ -112,6 +112,13 @@ input[type="range"] { accent-color: var(--lime); }
 
 .empty { text-align: center; color: var(--mut); padding: 40px; }
 
+/* Pagination */
+.pagination { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 28px 0 8px; }
+.page-btn { display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; padding: 7px 14px; border-radius: 99px; border: 1px solid var(--line); background: transparent; color: var(--txt); cursor: pointer; transition: border-color .15s, color .15s; }
+.page-btn:hover:not(:disabled) { border-color: var(--lime-dim); color: var(--lime-dim); }
+.page-btn:disabled { color: var(--mut); opacity: .4; cursor: not-allowed; }
+.page-info { font-size: 12px; color: var(--mut); font-family: 'JetBrains Mono', monospace; }
+
 /* Theme toggle */
 .theme-toggle { background: transparent; border: 1px solid var(--line); border-radius: 99px; padding: 7px 10px; color: var(--mut); cursor: pointer; display: flex; align-items: center; transition: border-color .15s, color .15s; }
 .theme-toggle:hover { border-color: var(--lime-dim); color: var(--txt); }
