@@ -80,6 +80,7 @@ class Produto(models.Model):
     url_produto   = models.URLField(blank=True, help_text='Link limpo do produto (usado para atualizar preços)')
     url_afiliado  = models.URLField(blank=True, help_text='Link de afiliado exibido pro usuário')
     url_imagem    = models.URLField(blank=True)
+    disponivel    = models.BooleanField(default=True, help_text='Desmarcado automaticamente quando o ML não tem mais oferta; oculto do site')
     atualizado_em = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -89,6 +90,23 @@ class Produto(models.Model):
 
     def __str__(self):
         return f'{self.marca} — {self.nome} ({self.plataforma})'
+
+    def atualizar_preco(self):
+        """Consulta o ML e atualiza preço/disponibilidade. Retorna 'ok' ou 'erro'.
+        Só marca indisponível quando o ML confirma (404, sem ofertas); falha
+        transitória (token, rede, 5xx) não mexe no produto."""
+        from .fetchers import fetch_mercadolivre
+        dados = fetch_mercadolivre(self.url_produto)
+        if dados.get('indisponivel'):
+            self.disponivel = False
+            self.save(update_fields=['disponivel', 'atualizado_em'])
+            return 'erro'
+        if 'erro' in dados or not dados.get('price'):
+            return 'erro'
+        self.preco = dados['price']
+        self.disponivel = True
+        self.save(update_fields=['preco', 'disponivel', 'atualizado_em'])
+        return 'ok'
 
     @property
     def doses(self):

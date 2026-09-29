@@ -66,8 +66,8 @@ class PendenteRevisaoFilter(admin.SimpleListFilter):
 
 @admin.register(Produto)
 class ProdutoAdmin(admin.ModelAdmin):
-    list_display   = ('marca', 'nome', 'plataforma', 'preco', 'tamanho', 'proteina_g', 'sabor', 'custo_display', 'atualizado_em')
-    list_filter    = ('plataforma', 'marca', 'sabor', 'tamanho', PendenteRevisaoFilter)
+    list_display   = ('marca', 'nome', 'plataforma', 'preco', 'tamanho', 'proteina_g', 'sabor', 'custo_display', 'disponivel', 'atualizado_em')
+    list_filter    = ('disponivel', 'plataforma', 'marca', 'sabor', 'tamanho', PendenteRevisaoFilter)
     search_fields  = ('nome', 'marca__nome', 'sabor__nome')
     readonly_fields = ('atualizado_em', 'doses_display', 'custo_por_dose_display', 'custo_30g_display')
     actions        = ['atualizar_precos']
@@ -86,7 +86,7 @@ class ProdutoAdmin(admin.ModelAdmin):
             'fields': ('preco', 'url_produto', 'url_afiliado', 'custo_por_dose_display', 'custo_30g_display')
         }),
         ('Metadados', {
-            'fields': ('atualizado_em',)
+            'fields': ('disponivel', 'atualizado_em')
         }),
     )
 
@@ -99,20 +99,14 @@ class ProdutoAdmin(admin.ModelAdmin):
         return extra + urls
 
     def atualizar_todos_view(self, request):
-        from catalog.fetchers import fetch_mercadolivre
         produtos = Produto.objects.filter(plataforma__codigo='ML').exclude(url_produto='')
         atualizados = erros = 0
         for p in produtos:
             try:
-                dados = fetch_mercadolivre(p.url_produto)
-                if 'erro' in dados or not dados.get('price'):
+                if p.atualizar_preco() == 'ok':
+                    atualizados += 1
+                else:
                     erros += 1
-                    continue
-                novo = Decimal(str(dados['price']))
-                if novo != p.preco:
-                    p.preco = novo
-                    p.save(update_fields=['preco', 'atualizado_em'])
-                atualizados += 1
             except Exception:
                 erros += 1
         nivel = messages.SUCCESS if not erros else messages.WARNING
@@ -170,21 +164,15 @@ class ProdutoAdmin(admin.ModelAdmin):
         return JsonResponse(dados)
 
     def atualizar_precos(self, request, queryset):
-        from catalog.fetchers import fetch_mercadolivre
         atualizados = erros = 0
         for p in queryset.filter(plataforma__codigo='ML'):
             if not p.url_produto:
                 continue
             try:
-                dados = fetch_mercadolivre(p.url_produto)
-                if 'erro' in dados or not dados.get('price'):
+                if p.atualizar_preco() == 'ok':
+                    atualizados += 1
+                else:
                     erros += 1
-                    continue
-                novo = Decimal(str(dados['price']))
-                if novo != p.preco:
-                    p.preco = novo
-                    p.save(update_fields=['preco', 'atualizado_em'])
-                atualizados += 1
             except Exception:
                 erros += 1
         self.message_user(request, f'{atualizados} preços atualizados, {erros} erros.', messages.SUCCESS if not erros else messages.WARNING)

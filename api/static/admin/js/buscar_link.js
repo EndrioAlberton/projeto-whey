@@ -43,6 +43,8 @@ document.addEventListener('DOMContentLoaded', function () {
       if (data.price !== null && data.price !== undefined) setVal('id_preco', data.price);
       if (data.image_url) setVal('id_url_imagem',  data.image_url);
       setVal('id_url_produto', url);
+      if (data.proteina_g) setVal('id_proteina_g', data.proteina_g);
+      if (data.dose_g)     setVal('id_dose_g',     data.dose_g);
 
       if (data.tamanho_id)    setDropdown('id_tamanho',    data.tamanho_id);
       if (data.marca_id)      setDropdown('id_marca',      data.marca_id);
@@ -50,7 +52,9 @@ document.addEventListener('DOMContentLoaded', function () {
       if (data.plataforma_id) setDropdown('id_plataforma', data.plataforma_id);
 
       status.style.color = '#27ae60';
-      status.textContent = '✓ Dados preenchidos! Preencha a proteína por dose e salve.';
+      status.textContent = data.proteina_g
+        ? '✓ Dados preenchidos (proteína/dose extraídas da descrição — confira e salve).'
+        : '✓ Dados preenchidos! Preencha a proteína por dose e salve.';
     })
     .catch(function () {
       status.style.color = '#c0392b';

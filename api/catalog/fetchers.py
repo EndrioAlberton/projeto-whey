@@ -127,7 +127,9 @@ def _fetch_product_details(product_id: str, token: str) -> dict:
 
     r = requests.get(f'https://api.mercadolibre.com/products/{product_id}', headers=headers, timeout=10)
     if r.status_code != 200:
-        return {'erro': f'Erro ao buscar produto {product_id}: {r.status_code}'}
+        # 404/410 = produto removido do catálogo; outros códigos podem ser falha transitória
+        return {'erro': f'Erro ao buscar produto {product_id}: {r.status_code}',
+                'indisponivel': r.status_code in (404, 410)}
 
     data = r.json()
 
@@ -143,14 +145,24 @@ def _fetch_product_details(product_id: str, token: str) -> dict:
 
     # Busca menor preço via itens do produto
     preco = None
+    sem_ofertas = False
     r2 = requests.get(f'https://api.mercadolibre.com/products/{product_id}/items?limit=5', headers=headers, timeout=10)
     if r2.status_code == 200:
         results = r2.json().get('results', [])
         precos = [i['price'] for i in results if i.get('price')]
         if precos:
             preco = min(precos)
+        else:
+            sem_ofertas = True  # produto existe mas ninguém vende mais
+
+    descricao = (data.get('short_description') or {}).get('content', '')
+    dose = (_extrair_dose_atributos(data.get('attributes', []))
+            or _extrair_dose(descricao) or _extrair_dose(data.get('name', '')))
 
     return {
+        'proteina_g': dose[0] if dose else None,
+        'dose_g':     dose[1] if dose else None,
+        'indisponivel': sem_ofertas or data.get('status') == 'inactive',
         'platform':   'ML',
         'product_id': product_id,
         'name':       data.get('name', ''),
@@ -279,6 +291,42 @@ def buscar_produtos_ml(termo: str, max_resultados: int = 30, sleep: float = 0.4)
         total = pagina.get('paging', {}).get('total', offset)
         if offset >= total:
             break
+
+
+def _extrair_dose(texto: str) -> tuple[float, int] | None:
+    """Acha "21g de proteína por dose de 30g" (ou "porção") na descrição.
+    Retorna (proteina_g, dose_g) ou None. Exige os dois números juntos pra
+    não confundir com "proteína total do pote" ou outros gramas soltos."""
+    if not texto:
+        return None
+    prot_re = r'(\d{1,2}(?:[.,]\d)?)\s*g\s*(?:de\s+)?prote[ií]nas?'
+    dose_re = r'(?:dose|por[cç][aã]o|scoop|medida)s?\s*(?:de\s+|\(\s*)?(\d{2,3})\s*g'
+    # "21g de proteína por dose de 30g"
+    m = re.search(prot_re + r'\s+(?:por|em cada|na)\s+' + dose_re, texto, re.IGNORECASE)
+    if m:
+        prot, dose = m.group(1), m.group(2)
+    else:
+        # "cada porção de 30g fornece 17g de proteínas"
+        m = re.search(dose_re + r'[^.]{0,40}?' + prot_re, texto, re.IGNORECASE)
+        if not m:
+            return None
+        dose, prot = m.group(1), m.group(2)
+    prot, dose = float(prot.replace(',', '.')), int(dose)
+    return (prot, dose) if 5 <= prot <= 40 and 10 <= dose <= 100 and prot < dose else None
+
+
+def _extrair_dose_atributos(atributos: list) -> tuple[float, int] | None:
+    """Ficha técnica do ML: "Peso da porção: 50 g" + texto livre em "Valores
+    nutricionais por porção" com "proteínas 17g". Casa pelo NOME do atributo
+    (o ID varia por categoria). Retorna (proteina_g, dose_g) ou None."""
+    por_nome = {(a.get('name') or '').lower(): a.get('value_name') or '' for a in atributos}
+    dose = _parse_peso(next((v for k, v in por_nome.items() if 'peso da por' in k), None))
+    texto = next((v for k, v in por_nome.items() if 'valores nutricionais' in k), '')
+    m = re.search(r'prote[ií]nas?\s*:?\s*(\d{1,2}(?:[.,]\d)?)\s*g\b', texto, re.IGNORECASE)
+    if not (dose and m):
+        return None
+    prot = float(m.group(1).replace(',', '.'))
+    return (prot, dose) if 5 <= prot <= 40 and 10 <= dose <= 100 and prot < dose else None
 
 
 def _extrair_proteina_titulo(nome: str) -> int | None:
