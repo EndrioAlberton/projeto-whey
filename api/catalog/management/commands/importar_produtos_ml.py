@@ -58,7 +58,12 @@ class Command(BaseCommand):
                 ignorados += 1
                 continue
 
-            marca, _   = Marca.objects.get_or_create(nome=c['brand'].strip())
+            # só marcas já cadastradas (lista curada no Admin); match exato, o flexível pega "Nutrition" de qualquer uma
+            marca = Marca.objects.filter(nome__iexact=c['brand'].strip()).first()
+            if not marca:
+                self.stdout.write(self.style.WARNING(f'  [marca fora da lista — ignorado] {nome[:60]} (marca={c["brand"]})'))
+                ignorados += 1
+                continue
             tamanho, _ = Tamanho.objects.get_or_create(
                 peso_g=c['peso_g'], defaults={'rotulo': _rotulo(c['peso_g'])}
             )
