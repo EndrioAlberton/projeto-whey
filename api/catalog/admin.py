@@ -2,7 +2,9 @@ import json
 from decimal import Decimal
 from django.contrib import admin
 from django.contrib import messages
+from django.db.models import Q
 from django.http import JsonResponse
+from django.utils.html import format_html
 from django.shortcuts import redirect
 from django.urls import path
 from django.utils import timezone
@@ -50,23 +52,26 @@ class PendenteRevisaoFilter(admin.SimpleListFilter):
     """Produtos importados em massa entram com proteina_g=0 (a API do ML não
     retorna isso) e ficam ocultos de /api/produtos/ até alguém preencher.
     Esse filtro acha eles rápido na listagem do Admin."""
-    title = 'revisão de proteína'
+    title = 'pendências'
     parameter_name = 'pendente'
 
     def lookups(self, request, model_admin):
-        return (('sim', 'Pendente (proteína = 0)'), ('nao', 'Completo'))
+        return (('proteina', 'Sem proteína/dose'), ('afiliado', 'Sem link de afiliado'),
+                ('qualquer', 'Qualquer pendência'), ('completo', 'Completo'))
 
     def queryset(self, request, queryset):
-        if self.value() == 'sim':
-            return queryset.filter(proteina_g=0)
-        if self.value() == 'nao':
-            return queryset.exclude(proteina_g=0)
+        sem_prot, sem_afil = Q(proteina_g=0), Q(url_afiliado='')
+        filtros = {'proteina': sem_prot, 'afiliado': sem_afil, 'qualquer': sem_prot | sem_afil}
+        if self.value() in filtros:
+            return queryset.filter(filtros[self.value()])
+        if self.value() == 'completo':
+            return queryset.exclude(sem_prot | sem_afil)
         return queryset
 
 
 @admin.register(Produto)
 class ProdutoAdmin(admin.ModelAdmin):
-    list_display   = ('marca', 'nome', 'plataforma', 'preco', 'tamanho', 'proteina_g', 'sabor', 'custo_display', 'disponivel', 'atualizado_em')
+    list_display   = ('marca', 'nome', 'pendencias', 'plataforma', 'preco', 'tamanho', 'proteina_g', 'sabor', 'custo_display', 'disponivel', 'atualizado_em')
     list_filter    = ('disponivel', 'plataforma', 'marca', 'sabor', 'tamanho', PendenteRevisaoFilter)
     search_fields  = ('nome', 'marca__nome', 'sabor__nome')
     readonly_fields = ('atualizado_em', 'doses_display', 'custo_por_dose_display', 'custo_30g_display')
@@ -177,6 +182,17 @@ class ProdutoAdmin(admin.ModelAdmin):
                 erros += 1
         self.message_user(request, f'{atualizados} preços atualizados, {erros} erros.', messages.SUCCESS if not erros else messages.WARNING)
     atualizar_precos.short_description = 'Atualizar preços via ML'
+
+    def pendencias(self, obj):
+        faltas = []
+        if not obj.proteina_g:
+            faltas.append('proteína/dose')
+        if not obj.url_afiliado:
+            faltas.append('link afiliado')
+        if not faltas:
+            return format_html('<span style="color:#27ae60">✓ completo</span>')
+        return format_html('<b style="color:#c0392b">Falta: {}</b>', ' + '.join(faltas))
+    pendencias.short_description = 'Pendências'
 
     def custo_display(self, obj):
         return f'R$ {obj.custo_por_30g_proteina:.2f} / 30g' if obj.custo_por_30g_proteina else '—'
