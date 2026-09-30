@@ -161,7 +161,8 @@ def _fetch_product_details(product_id: str, token: str) -> dict:
         + [f.get('text', '') for f in data.get('main_features') or []]
     )
     dose = (_extrair_dose_atributos(data.get('attributes', []))
-            or _extrair_dose(descricao) or _extrair_dose(data.get('name', '')))
+            or _extrair_dose(descricao) or _extrair_dose(data.get('name', ''))
+            or _extrair_dose_combinada(data.get('attributes', []), descricao))
 
     return {
         'proteina_g': dose[0] if dose else None,
@@ -332,6 +333,22 @@ def _extrair_dose_atributos(atributos: list) -> tuple[float, int] | None:
     if not (dose and m):
         return None
     prot = float((m.group(1) or m.group(2)).replace(',', '.'))
+    return (prot, dose) if 5 <= prot <= 40 and 10 <= dose <= 100 and prot < dose else None
+
+
+def _extrair_dose_combinada(atributos: list, texto: str) -> tuple[float, int] | None:
+    """Proteína dita "por porção/dose" num texto SEM o número da dose
+    ("21g de proteína pura por porção...") + dose da ficha técnica ("Peso da
+    porção: 30 g"). Exige o "por porção/dose" pra não pegar proteína de pote
+    ("21g de proteína do soro") e a dose dentro de 10–100g (vendedores às
+    vezes põem o peso do pote ali)."""
+    dose = _parse_peso(next((a.get('value_name') for a in atributos
+                             if 'peso da por' in (a.get('name') or '').lower()), None))
+    m = re.search(r'(\d{1,2}(?:[.,]\d)?)\s*g\s*(?:de\s+)?prote[ií]nas?(?:\s+\w+)?\s+por\s+(?:dose|por[cç][aã]o)',
+                  texto or '', re.IGNORECASE)
+    if not (dose and m):
+        return None
+    prot = float(m.group(1).replace(',', '.'))
     return (prot, dose) if 5 <= prot <= 40 and 10 <= dose <= 100 and prot < dose else None
 
 

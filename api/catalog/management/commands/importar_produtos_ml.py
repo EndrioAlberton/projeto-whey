@@ -50,16 +50,21 @@ class Command(BaseCommand):
                 existentes += 1
                 continue
 
-            if not c.get('brand') or not c.get('peso_g') or not c.get('price'):
+            # peso < 100g = sachê/amostra ou peso da porção no lugar do peso do pote; estraga doses e comparação
+            if not c.get('brand') or (c.get('peso_g') or 0) < 100 or not c.get('price'):
                 self.stdout.write(self.style.WARNING(
                     f'  [incompleto — ignorado] {nome[:60]} '
-                    f'(marca={c.get("brand") or "?"} peso={c.get("peso_g") or "?"} preco={c.get("price") or "?"})'
+                    f'(marca={c.get("brand") or "?"} peso={c.get("peso_g") or "?"} preco={c.get("price") or "?"}'
+                    f'{" SEM OFERTA" if c.get("indisponivel") else ""} id={pid})'
                 ))
                 ignorados += 1
                 continue
 
-            # só marcas já cadastradas (lista curada no Admin); match exato, o flexível pega "Nutrition" de qualquer uma
-            marca = Marca.objects.filter(nome__iexact=c['brand'].strip()).first()
+            # só marcas já cadastradas (lista curada no Admin). Aceita um nome contido no outro
+            # ("Dux" ~ "Dux Nutrition"); NÃO usa _match_nome, que casa por palavra solta ("Nutrition")
+            brand_l = c['brand'].strip().lower()
+            marca = next((m for m in Marca.objects.all()
+                          if m.nome.lower() in brand_l or brand_l in m.nome.lower()), None)
             if not marca:
                 self.stdout.write(self.style.WARNING(f'  [marca fora da lista — ignorado] {nome[:60]} (marca={c["brand"]})'))
                 ignorados += 1

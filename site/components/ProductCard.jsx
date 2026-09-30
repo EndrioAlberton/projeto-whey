@@ -1,6 +1,6 @@
 import { Award, ShoppingCart } from 'lucide-react'
 
-const brl = (n) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+const brl = (n) => n == null ? '—' : Number(n).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
 export default function ProductCard({ produto: p, isMelhor }) {
   // Sem link de afiliado ainda (produto recém-importado)? usa o link real
