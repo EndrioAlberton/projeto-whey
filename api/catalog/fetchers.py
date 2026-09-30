@@ -155,7 +155,11 @@ def _fetch_product_details(product_id: str, token: str) -> dict:
         else:
             sem_ofertas = True  # produto existe mas ninguém vende mais
 
-    descricao = (data.get('short_description') or {}).get('content', '')
+    # "O que você precisa saber" pode vir em short_description ou em main_features (lista de bullets)
+    descricao = '\n'.join(
+        [(data.get('short_description') or {}).get('content', '')]
+        + [f.get('text', '') for f in data.get('main_features') or []]
+    )
     dose = (_extrair_dose_atributos(data.get('attributes', []))
             or _extrair_dose(descricao) or _extrair_dose(data.get('name', '')))
 
