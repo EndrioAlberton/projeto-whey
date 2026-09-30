@@ -71,12 +71,15 @@ class Command(BaseCommand):
             if not sabor:
                 sabor, _ = Sabor.objects.get_or_create(nome='Não especificado')
 
-            proteina_sugerida = _extrair_proteina_titulo(nome)
+            if c.get('proteina_g'):
+                prot_txt = f'proteina={c["proteina_g"]}g/dose={c["dose_g"]}g (da API)'
+            else:
+                prot_txt = f'proteina=? (título sugere {_extrair_proteina_titulo(nome) or "?"}g — PREENCHER NO ADMIN)'
 
             self.stdout.write(
                 f'  [{"seria criado" if dry else "criado"}] {nome[:60]} | '
                 f'marca={marca.nome} tamanho={tamanho.rotulo} sabor={sabor.nome} '
-                f'preco=R${c["price"]} proteina_sugerida={proteina_sugerida or "?"}g (REVISAR NO ADMIN)'
+                f'preco=R${c["price"]} {prot_txt}'
             )
 
             if not dry:

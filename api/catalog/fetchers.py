@@ -326,10 +326,12 @@ def _extrair_dose_atributos(atributos: list) -> tuple[float, int] | None:
     por_nome = {(a.get('name') or '').lower(): a.get('value_name') or '' for a in atributos}
     dose = _parse_peso(next((v for k, v in por_nome.items() if 'peso da por' in k), None))
     texto = next((v for k, v in por_nome.items() if 'valores nutricionais' in k), '')
-    m = re.search(r'prote[ií]nas?\s*:?\s*(\d{1,2}(?:[.,]\d)?)\s*g\b', texto, re.IGNORECASE)
+    # "27 g proteínas" ou "proteínas 17g" / "proteína: 17g"
+    m = re.search(r'(\d{1,2}(?:[.,]\d)?)\s*g\s*(?:de\s+)?prote[ií]nas?|prote[ií]nas?\s*:?\s*(\d{1,2}(?:[.,]\d)?)\s*g\b',
+                  texto, re.IGNORECASE)
     if not (dose and m):
         return None
-    prot = float(m.group(1).replace(',', '.'))
+    prot = float((m.group(1) or m.group(2)).replace(',', '.'))
     return (prot, dose) if 5 <= prot <= 40 and 10 <= dose <= 100 and prot < dose else None
 
 
