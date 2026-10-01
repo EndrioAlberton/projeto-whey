@@ -20,7 +20,7 @@ export default function ProductCard({ produto: p, isMelhor }) {
         </span>
         <div style={{ textAlign: 'center' }}>
           <div className="mono-prot">{p.proteina_g}g</div>
-          <small>proteína / dose</small>
+          <small>proteína / dose de {p.dose_g}g</small>
         </div>
       </div>
       <div className="cbody">
