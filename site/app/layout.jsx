@@ -4,6 +4,7 @@ import Footer from '../components/Footer'
 export const metadata = {
   title: 'WheyMais — Compare whey protein pelo custo por proteína',
   description: 'Compare os melhores wheys do Brasil pelo custo por 30g de proteína. Filtros por marca, sabor e proteína mínima. Preços atualizados.',
+  verification: { google: '9aDvQDm412ZkAO0p34GothTAF9wtklABn0Q3hAG8RiE' },
   openGraph: {
     title: 'WheyMais — Compare whey protein pelo custo por proteína',
     description: 'Compare os melhores wheys do Brasil pelo custo por 30g de proteína.',
