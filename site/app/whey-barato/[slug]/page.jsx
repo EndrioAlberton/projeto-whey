@@ -28,6 +28,7 @@ export default async function Page({ params }) {
   const lista = todos
     .filter((p) => p[alvo.tipo] === alvo.nome && p.custo_por_30g_proteina != null)
     .sort((a, b) => a.custo_por_30g_proteina - b.custo_por_30g_proteina)
+  if (!lista.length) notFound()
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -55,7 +56,6 @@ export default async function Page({ params }) {
       </p>
       <div className="grid">
         {lista.map((p, i) => <ProductCard key={p.id} produto={p} isMelhor={i === 0} />)}
-        {!lista.length && <div className="empty">Nenhum produto encontrado.</div>}
       </div>
     </main>
   )

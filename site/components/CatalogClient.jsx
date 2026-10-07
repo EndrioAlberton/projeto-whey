@@ -44,9 +44,11 @@ export default function CatalogClient({ produtos, opcoes = {} }) {
     if (params.get('ordenar')) setOrdenar(params.get('ordenar'))
   }, [params])
 
-  const marcas  = opcoes.marcas  || [...new Set(produtos.map((p) => p.marca))]
-  const sabores = opcoes.sabores || [...new Set(produtos.map((p) => p.sabor))]
-  const tamanhos = opcoes.tamanhos || []
+  // Só mostra opções que têm ao menos um produto.
+  const marcas  = [...new Set(produtos.map((p) => p.marca))].sort()
+  const sabores = [...new Set(produtos.map((p) => p.sabor))].sort()
+  const faixas  = new Set(produtos.map((p) => String(faixaPeso(p.peso_g))))
+  const tamanhos = (opcoes.tamanhos || []).filter((t) => faixas.has(String(t.peso_g)))
 
   const lista = useMemo(() => {
     return [...produtos]
