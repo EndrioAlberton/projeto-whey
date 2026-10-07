@@ -1,7 +1,12 @@
 import './globals.css'
 import Footer from '../components/Footer'
 
+import { Anton, DM_Sans, JetBrains_Mono } from 'next/font/google'
 import { SITE_URL } from '../lib/slug'
+
+const anton = Anton({ subsets: ['latin'], weight: '400', variable: '--f-anton', display: 'swap' })
+const dm    = DM_Sans({ subsets: ['latin'], weight: ['400', '500', '700'], variable: '--f-dm', display: 'swap' })
+const mono  = JetBrains_Mono({ subsets: ['latin'], weight: ['500', '700'], variable: '--f-mono', display: 'swap' })
 
 export const metadata = {
   metadataBase: new URL(SITE_URL),
@@ -18,7 +23,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className={`${anton.variable} ${dm.variable} ${mono.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}` }} />
       </head>
