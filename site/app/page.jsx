@@ -3,10 +3,12 @@ import { Zap } from 'lucide-react'
 import { getProdutos, getOpcoesFiltros } from '../lib/api'
 import CatalogClient from '../components/CatalogClient'
 import ThemeToggle from '../components/ThemeToggle'
+import { SITE_URL } from '../lib/slug'
 
 export const metadata = {
   title: 'WheyMais — Melhores wheys do Brasil por custo de proteína',
-  description: 'Compare os melhores wheys do Brasil pelo custo por 30g de proteína. Filtros por marca, sabor e proteína mínima. Preços atualizados diariamente.',
+  description: 'Compare os melhores wheys do Brasil pelo custo por 30g de proteína. Filtre por marca, sabor e tamanho.',
+  alternates: { canonical: '/' },
 }
 
 export default async function Home() {
@@ -17,6 +19,9 @@ export default async function Home() {
 
   return (
     <main className="wrap">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        '@context': 'https://schema.org', '@type': 'WebSite', name: 'WheyMais', url: SITE_URL, inLanguage: 'pt-BR',
+      }) }} />
       <header>
         <div className="logo">
           <Zap size={26} color="var(--lime)" fill="var(--lime)" />
