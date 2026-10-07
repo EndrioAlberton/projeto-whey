@@ -1,7 +1,8 @@
 import Link from 'next/link'
 
-const BRANDS  = ['Growth', 'Max Titanium', 'Dux', 'Integralmédica', 'Probiótica', 'Black Skull', 'New Millen', 'Atlhetica']
-const FLAVORS = ['Chocolate', 'Baunilha', 'Morango', 'Cookies']
+// [rótulo, slug de /whey-barato/[slug]]
+const BRANDS  = [['Growth', 'growth-supplements'], ['Max Titanium', 'max-titanium'], ['Dux', 'dux-nutrition'], ['Integralmédica', 'integralmedica'], ['Probiótica', 'probiotica'], ['Black Skull', 'black-skull'], ['New Millen', 'new-millen'], ['Atlhetica', 'atlhetica']]
+const FLAVORS = [['Chocolate', 'chocolate'], ['Baunilha', 'baunilha'], ['Morango', 'morango'], ['Cookies', 'cookies-and-cream']]
 const SIZES   = [{ label: '900g', value: '900' }, { label: '1kg', value: '1000' }, { label: '2kg', value: '2000' }]
 
 export default function Footer() {
@@ -20,8 +21,8 @@ export default function Footer() {
           <div className="footer-col">
             <h3>Por marca</h3>
             <ul>
-              {BRANDS.map((b) => (
-                <li key={b}><Link href={`/?brand=${encodeURIComponent(b)}`}>{b}</Link></li>
+              {BRANDS.map(([nome, slug]) => (
+                <li key={slug}><Link href={`/whey-barato/${slug}`}>{nome}</Link></li>
               ))}
             </ul>
           </div>
@@ -29,14 +30,14 @@ export default function Footer() {
           <div className="footer-col">
             <h3>Por sabor</h3>
             <ul>
-              {FLAVORS.map((f) => (
-                <li key={f}><Link href={`/?flavor=${encodeURIComponent(f)}`}>{f}</Link></li>
+              {FLAVORS.map(([nome, slug]) => (
+                <li key={slug}><Link href={`/whey-barato/${slug}`}>{nome}</Link></li>
               ))}
             </ul>
             <h3 style={{ marginTop: 20 }}>Por tamanho</h3>
             <ul>
               {SIZES.map((s) => (
-                <li key={s.value}><Link href={`/?size=${s.value}`}>{s.label}</Link></li>
+                <li key={s.value}><Link href={`/?tamanho=${s.value}`}>{s.label}</Link></li>
               ))}
             </ul>
           </div>
