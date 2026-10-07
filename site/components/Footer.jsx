@@ -19,7 +19,7 @@ export default function Footer() {
         <div className="footer-grid">
 
           <div className="footer-col">
-            <h3>Por marca</h3>
+            <h2>Por marca</h2>
             <ul>
               {BRANDS.map(([nome, slug]) => (
                 <li key={slug}><Link href={`/whey-barato/${slug}`}>{nome}</Link></li>
@@ -28,13 +28,13 @@ export default function Footer() {
           </div>
 
           <div className="footer-col">
-            <h3>Por sabor</h3>
+            <h2>Por sabor</h2>
             <ul>
               {FLAVORS.map(([nome, slug]) => (
                 <li key={slug}><Link href={`/whey-barato/${slug}`}>{nome}</Link></li>
               ))}
             </ul>
-            <h3 style={{ marginTop: 20 }}>Por tamanho</h3>
+            <h2 style={{ marginTop: 20 }}>Por tamanho</h2>
             <ul>
               {SIZES.map((s) => (
                 <li key={s.value}><Link href={`/?tamanho=${s.value}`}>{s.label}</Link></li>
@@ -43,7 +43,7 @@ export default function Footer() {
           </div>
 
           <div className="footer-col footer-col--wide">
-            <h3>Como calculamos o custo por proteína</h3>
+            <h2>Como calculamos o custo por proteína</h2>
             <p>
               Dividimos o preço total do produto pelo total de gramas de proteína que ele entrega.
               O resultado é normalizado para 30g (uma dose padrão) permitindo comparar potes de

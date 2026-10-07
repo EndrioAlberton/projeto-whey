@@ -80,22 +80,22 @@ export default function CatalogClient({ produtos, opcoes = {} }) {
       <div className="filters">
         <SlidersHorizontal size={18} color="var(--mut)" />
         <div className="fgroup">
-          <label>Marca</label>
-          <select value={fMarca} onChange={(e) => setFMarca(e.target.value)}>
+          <label htmlFor="f-marca">Marca</label>
+          <select id="f-marca" value={fMarca} onChange={(e) => setFMarca(e.target.value)}>
             <option value="">Todas</option>
             {marcas.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
         <div className="fgroup">
-          <label>Sabor</label>
-          <select value={fSabor} onChange={(e) => setFSabor(e.target.value)}>
+          <label htmlFor="f-sabor">Sabor</label>
+          <select id="f-sabor" value={fSabor} onChange={(e) => setFSabor(e.target.value)}>
             <option value="">Todos</option>
             {sabores.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
         <div className="fgroup">
-          <label>Tamanho</label>
-          <select value={fTamanho} onChange={(e) => setFTamanho(e.target.value)}>
+          <label htmlFor="f-tamanho">Tamanho</label>
+          <select id="f-tamanho" value={fTamanho} onChange={(e) => setFTamanho(e.target.value)}>
             <option value="">Todos</option>
             {tamanhos.map((t) => (
               <option key={t.peso_g} value={t.peso_g}>{t.rotulo}</option>
@@ -103,12 +103,12 @@ export default function CatalogClient({ produtos, opcoes = {} }) {
           </select>
         </div>
         <div className="fgroup">
-          <label>Proteína mín / dose: {fProtMin}g</label>
-          <input type="range" min="0" max="30" value={fProtMin} onChange={(e) => setFProtMin(+e.target.value)} />
+          <label htmlFor="f-prot">Proteína mín / dose: {fProtMin}g</label>
+          <input id="f-prot" type="range" min="0" max="30" value={fProtMin} onChange={(e) => setFProtMin(+e.target.value)} />
         </div>
         <div className="fgroup" style={{ marginLeft: 'auto' }}>
-          <label>Ordenar por</label>
-          <select value={ordenar} onChange={(e) => setOrdenar(e.target.value)}>
+          <label htmlFor="f-ord">Ordenar por</label>
+          <select id="f-ord" value={ordenar} onChange={(e) => setOrdenar(e.target.value)}>
             {OPCOES_ORDENACAO.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
