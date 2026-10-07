@@ -46,7 +46,7 @@ export default function Footer() {
             <h3>Como calculamos o custo por proteína</h3>
             <p>
               Dividimos o preço total do produto pelo total de gramas de proteína que ele entrega.
-              O resultado é normalizado para 30g — uma dose padrão — permitindo comparar potes de
+              O resultado é normalizado para 30g (uma dose padrão) permitindo comparar potes de
               tamanhos e doses diferentes em igualdade de condições. Quanto menor o valor, mais
               barato sai cada dose de proteína.
             </p>
