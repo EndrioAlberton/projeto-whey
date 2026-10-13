@@ -1,9 +1,5 @@
 import Link from 'next/link'
-
-// [rótulo, slug de /whey-barato/[slug]]
-const BRANDS  = [['Growth', 'growth-supplements'], ['Max Titanium', 'max-titanium'], ['Dux', 'dux-nutrition'], ['Integralmédica', 'integralmedica'], ['Probiótica', 'probiotica'], ['Black Skull', 'black-skull'], ['New Millen', 'new-millen'], ['Atlhetica', 'atlhetica']]
-const FLAVORS = [['Chocolate', 'chocolate'], ['Baunilha', 'baunilha'], ['Morango', 'morango'], ['Cookies', 'cookies-and-cream']]
-const SIZES   = [{ label: '900g', value: '900' }, { label: '1kg', value: '1000' }, { label: '2kg', value: '2000' }]
+import Faq from './Faq'
 
 export default function Footer() {
   const year = new Date().getFullYear()
@@ -19,27 +15,7 @@ export default function Footer() {
         <div className="footer-grid">
 
           <div className="footer-col">
-            <h2>Por marca</h2>
-            <ul>
-              {BRANDS.map(([nome, slug]) => (
-                <li key={slug}><Link href={`/whey-barato/${slug}`}>{nome}</Link></li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="footer-col">
-            <h2>Por sabor</h2>
-            <ul>
-              {FLAVORS.map(([nome, slug]) => (
-                <li key={slug}><Link href={`/whey-barato/${slug}`}>{nome}</Link></li>
-              ))}
-            </ul>
-            <h2 style={{ marginTop: 20 }}>Por tamanho</h2>
-            <ul>
-              {SIZES.map((s) => (
-                <li key={s.value}><Link href={`/?tamanho=${s.value}`}>{s.label}</Link></li>
-              ))}
-            </ul>
+            <Faq />
           </div>
 
           <div className="footer-col footer-col--wide">
@@ -60,11 +36,12 @@ export default function Footer() {
 
         <div className="footer-bottom">
           <div className="footer-legal">
-            <Link href="/?sort=p30">Melhor custo-benefício</Link>
+            <Link href="/sobre">Sobre</Link>
+            <Link href="/contato">Contato</Link>
+            <Link href="/privacidade">Privacidade</Link>
           </div>
           <span className="footer-copy">
-            © {year} WheyMais — Desenvolvido por{' '}
-            <a href="mailto:endrio.alberton@gmail.com">endrio.alberton@gmail.com</a>
+            © {year} WheyMais
           </span>
         </div>
 

@@ -1,5 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
+import SiteHeader from '../../../components/SiteHeader'
 import { getProdutos, getOpcoesFiltros } from '../../../lib/api'
 import { resolverSlug, SITE_URL } from '../../../lib/slug'
 import ProductCard from '../../../components/ProductCard'
@@ -49,7 +51,8 @@ export default async function Page({ params }) {
   return (
     <main className="wrap">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <p style={{ fontSize: 12, marginBottom: 12 }}><Link href="/">← WheyMais</Link></p>
+      <SiteHeader />
+      <Link href="/" className="voltar"><ArrowLeft size={14} aria-hidden="true" /> Voltar à página principal</Link>
       <h1 style={{ fontSize: 22, marginBottom: 6 }}>{titulo(alvo)}</h1>
       <p style={{ fontSize: 14, color: 'var(--mut)', marginBottom: 18 }}>
         {lista.length} produtos ordenados do menor para o maior custo por 30g de proteína.

@@ -20,7 +20,7 @@ export default function ThemeToggle() {
 
   return (
     <button onClick={toggle} className="theme-toggle" aria-label="Alternar tema" title={theme === 'dark' ? 'Tema claro (Desert)' : 'Tema escuro'}>
-      {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+      {theme === 'dark' ? <Sun aria-hidden="true" size={18} /> : <Moon aria-hidden="true" size={18} />}
     </button>
   )
 }

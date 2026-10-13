@@ -11,7 +11,7 @@ export default function ProductCard({ produto: p, isMelhor }) {
     <div className={'card' + (isMelhor ? ' best' : '')}>
       {isMelhor && (
         <div className="best-tag">
-          <Award size={11} /> Melhor custo-benefício
+          <Award aria-hidden="true" size={11} /> Melhor custo-benefício
         </div>
       )}
       <div className="thumb">
@@ -46,12 +46,12 @@ export default function ProductCard({ produto: p, isMelhor }) {
         </div>
         {link ? (
           <a className="buy" href={link} aria-label={`Comprar ${p.nome} no ${p.plataforma === 'ML' ? 'Mercado Livre' : 'Amazon'}`} target="_blank" rel="nofollow noopener noreferrer sponsored">
-            <ShoppingCart size={16} />
+            <ShoppingCart aria-hidden="true" size={16} />
             Comprar no {p.plataforma === 'ML' ? 'Mercado Livre' : 'Amazon'}
           </a>
         ) : (
           <span className="buy" style={{ opacity: .5, cursor: 'not-allowed' }}>
-            <ShoppingCart size={16} />
+            <ShoppingCart aria-hidden="true" size={16} />
             Link indisponível
           </span>
         )}

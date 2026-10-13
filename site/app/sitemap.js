@@ -8,6 +8,7 @@ export default async function sitemap() {
   const slugs = [...new Set(produtos.flatMap((p) => [p.marca, p.sabor]).map(slugify))]
   return [
     { url: SITE_URL },
+    ...['sobre', 'contato', 'privacidade'].map((s) => ({ url: `${SITE_URL}/${s}` })),
     ...slugs.map((s) => ({ url: `${SITE_URL}/whey-barato/${s}` })),
   ]
 }

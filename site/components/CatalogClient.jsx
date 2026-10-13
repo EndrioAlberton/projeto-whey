@@ -78,7 +78,7 @@ export default function CatalogClient({ produtos, opcoes = {} }) {
   return (
     <>
       <div className="filters">
-        <SlidersHorizontal size={18} color="var(--mut)" />
+        <SlidersHorizontal aria-hidden="true" size={18} color="var(--mut)" />
         <div className="fgroup">
           <label htmlFor="f-marca">Marca</label>
           <select id="f-marca" value={fMarca} onChange={(e) => setFMarca(e.target.value)}>
@@ -128,7 +128,7 @@ export default function CatalogClient({ produtos, opcoes = {} }) {
             onClick={() => setPagina((p) => Math.max(1, p - 1))}
             disabled={paginaAtual === 1}
           >
-            <ChevronLeft size={16} /> Anterior
+            <ChevronLeft aria-hidden="true" size={16} /> Anterior
           </button>
           <span className="page-info">Página {paginaAtual} de {totalPaginas}</span>
           <button
@@ -136,7 +136,7 @@ export default function CatalogClient({ produtos, opcoes = {} }) {
             onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
             disabled={paginaAtual === totalPaginas}
           >
-            Próxima <ChevronRight size={16} />
+            Próxima <ChevronRight aria-hidden="true" size={16} />
           </button>
         </div>
       )}
