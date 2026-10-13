@@ -294,7 +294,7 @@ def buscar_produtos_ml(termo: str, max_resultados: int = 30, sleep: float = 0.4)
 
         offset += len(results)
         total = pagina.get('paging', {}).get('total', offset)
-        if offset >= total:
+        if offset >= total or offset > 100:  # ML recusa offset > 100 (erro 400)
             break
 
 
